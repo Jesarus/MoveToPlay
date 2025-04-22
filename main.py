@@ -1,63 +1,63 @@
 import pygame
-from config import LARGURA_TELA, ALTURA_TELA, BRANCO, PRETO
+from config import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK
 from game import game_loop
 from vision import release_resources, wait_for_hand_detection
 from utils import render_text_centered
 
-def splash_screen(tela, clock):
+def splash_screen(screen, clock):
     """Display the splash screen with options to start or exit the game."""
-    fonte_titulo = pygame.font.SysFont(None, 72)
-    fonte_opcoes = pygame.font.SysFont(None, 48)
+    title_font = pygame.font.SysFont(None, 72)
+    options_font = pygame.font.SysFont(None, 48)
 
-    rodando = True
-    while rodando:
-        tela.fill(PRETO)
+    running = True
+    while running:
+        screen.fill(BLACK)
 
         # Render title
-        titulo = fonte_titulo.render("Pong com a Mão 🖐️", True, BRANCO)
-        tela.blit(titulo, (LARGURA_TELA // 2 - titulo.get_width() // 2, ALTURA_TELA // 4))
+        title = title_font.render("Pong with Hand", True, WHITE)
+        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, SCREEN_HEIGHT // 4))
 
         # Render options
-        opcao_novo_jogo = fonte_opcoes.render("1. Novo Jogo", True, BRANCO)
-        opcao_sair = fonte_opcoes.render("2. Sair", True, BRANCO)
-        tela.blit(opcao_novo_jogo, (LARGURA_TELA // 2 - opcao_novo_jogo.get_width() // 2, ALTURA_TELA // 2))
-        tela.blit(opcao_sair, (LARGURA_TELA // 2 - opcao_sair.get_width() // 2, ALTURA_TELA // 2 + 60))
+        option_new_game = options_font.render("1. New Game", True, WHITE)
+        option_exit = options_font.render("2. Exit", True, WHITE)
+        screen.blit(option_new_game, (SCREEN_WIDTH // 2 - option_new_game.get_width() // 2, SCREEN_HEIGHT // 2))
+        screen.blit(option_exit, (SCREEN_WIDTH // 2 - option_exit.get_width() // 2, SCREEN_HEIGHT // 2 + 60))
 
         pygame.display.flip()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                rodando = False
+                running = False
                 return None
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:  # Start new game
                     return True
                 if event.key == pygame.K_2:  # Exit game
-                    rodando = False
+                    running = False
                     return None
 
         clock.tick(60)
 
-def select_difficulty(tela, clock):
+def select_difficulty(screen, clock):
     """Display a screen to select the AI difficulty level."""
-    fonte_titulo = pygame.font.SysFont(None, 72)
-    fonte_opcoes = pygame.font.SysFont(None, 48)
+    title_font = pygame.font.SysFont(None, 72)
+    options_font = pygame.font.SysFont(None, 48)
 
-    rodando = True
-    while rodando:
-        tela.fill(PRETO)
+    running = True
+    while running:
+        screen.fill(BLACK)
 
         # Render title
-        titulo = fonte_titulo.render("Selecione a Dificuldade", True, BRANCO)
-        tela.blit(titulo, (LARGURA_TELA // 2 - titulo.get_width() // 2, ALTURA_TELA // 4))
+        title = title_font.render("Select Difficulty", True, WHITE)
+        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, SCREEN_HEIGHT // 4))
 
         # Render difficulty options
-        opcao_facil = fonte_opcoes.render("1. Fácil", True, BRANCO)
-        opcao_medio = fonte_opcoes.render("2. Médio", True, BRANCO)
-        opcao_dificil = fonte_opcoes.render("3. Difícil", True, BRANCO)
-        tela.blit(opcao_facil, (LARGURA_TELA // 2 - opcao_facil.get_width() // 2, ALTURA_TELA // 2))
-        tela.blit(opcao_medio, (LARGURA_TELA // 2 - opcao_medio.get_width() // 2, ALTURA_TELA // 2 + 60))
-        tela.blit(opcao_dificil, (LARGURA_TELA // 2 - opcao_dificil.get_width() // 2, ALTURA_TELA // 2 + 120))
+        option_easy = options_font.render("1. Easy", True, WHITE)
+        option_medium = options_font.render("2. Medium", True, WHITE)
+        option_hard = options_font.render("3. Hard", True, WHITE)
+        screen.blit(option_easy, (SCREEN_WIDTH // 2 - option_easy.get_width() // 2, SCREEN_HEIGHT // 2))
+        screen.blit(option_medium, (SCREEN_WIDTH // 2 - option_medium.get_width() // 2, SCREEN_HEIGHT // 2 + 60))
+        screen.blit(option_hard, (SCREEN_WIDTH // 2 - option_hard.get_width() // 2, SCREEN_HEIGHT // 2 + 120))
 
         pygame.display.flip()
 
@@ -76,23 +76,28 @@ def select_difficulty(tela, clock):
         clock.tick(60)
 
 def main():
-    """Main function to run the game."""
     pygame.init()
-    tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
-    pygame.display.set_caption("Pong com a Mão 🖐️")
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
+    font = pygame.font.SysFont(None, 48)
 
-    # Show splash screen
-    if splash_screen(tela, clock):
+    while True:
+        # Show the splash screen
+        if splash_screen(screen, clock) is None:
+            break  # Exit the program
+
         # Select difficulty
-        difficulty = select_difficulty(tela, clock)
+        difficulty = select_difficulty(screen, clock)
         if difficulty is None:
-            return  # Exit if the user quits during difficulty selection
+            break  # Exit the program
 
         # Wait for hand detection
-        if wait_for_hand_detection(tela, clock):
-            fonte = pygame.font.SysFont(None, 48)
-            game_loop(tela, clock, fonte, difficulty)
+        if not wait_for_hand_detection(screen, clock):
+            break  # Exit the program
+
+        # Start the game loop
+        if not game_loop(screen, clock, font, difficulty):
+            break  # Exit the program
 
     pygame.quit()
     release_resources()

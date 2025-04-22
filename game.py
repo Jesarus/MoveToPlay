@@ -1,95 +1,116 @@
 import pygame
 from config import *
-from utils import desenhar_placar
-from vision import atualizar_webcam
+from utils import draw_score
+from vision import update_webcam
+import random
 
-def handle_ai_movement(y_ia, y_bola, ai_speed):
+def handle_ai_movement(y_ai, y_ball, ai_speed):
     """Move the AI paddle based on the ball's position."""
-    if y_ia + ALTURA_RAQUETE // 2 < y_bola:
-        y_ia += ai_speed
-    elif y_ia + ALTURA_RAQUETE // 2 > y_bola:
-        y_ia -= ai_speed
-    return max(0, min(ALTURA_TELA - ALTURA_RAQUETE, y_ia))
+    if y_ai + PADDLE_HEIGHT // 2 < y_ball:
+        y_ai += ai_speed
+    elif y_ai + PADDLE_HEIGHT // 2 > y_ball:
+        y_ai -= ai_speed
+    return max(0, min(SCREEN_HEIGHT - PADDLE_HEIGHT, y_ai))
 
-def handle_ball_movement(x_bola, y_bola, velocidade_bola_x, velocidade_bola_y):
+def handle_ball_movement(x_ball, y_ball, ball_speed_x, ball_speed_y):
     """Move the ball and handle collisions with the top and bottom walls."""
-    x_bola += velocidade_bola_x
-    y_bola += velocidade_bola_y
+    x_ball += ball_speed_x
+    y_ball += ball_speed_y
 
     # Collision with top and bottom
-    if y_bola <= 0 or y_bola >= ALTURA_TELA:
-        velocidade_bola_y *= -1
+    if y_ball <= 0 or y_ball >= SCREEN_HEIGHT:
+        ball_speed_y *= -1
 
-    return x_bola, y_bola, velocidade_bola_x, velocidade_bola_y
+    return x_ball, y_ball, ball_speed_x, ball_speed_y
 
-def check_paddle_collision(x_bola, y_bola, x_paddle, y_paddle):
+def check_paddle_collision(x_ball, y_ball, x_paddle, y_paddle):
     """Check if the ball collides with a paddle."""
-    return (x_paddle <= x_bola <= x_paddle + LARGURA_RAQUETE and
-            y_paddle < y_bola < y_paddle + ALTURA_RAQUETE)
+    return (x_paddle <= x_ball <= x_paddle + PADDLE_WIDTH and
+            y_paddle < y_ball < y_paddle + PADDLE_HEIGHT)
 
-def reset_ball():
-    """Reset the ball to the center of the game area."""
-    return LARGURA_TELA // 3 + (2 * LARGURA_TELA // 3) // 2, ALTURA_TELA // 2
+def reset_ball(difficulty):
+    """Reset the ball to the initial position and give it a random direction based on difficulty."""
+    x_ball = SCREEN_WIDTH // 3 + (2 * SCREEN_WIDTH // 3) // 2  # Initial horizontal position
+    y_ball = SCREEN_HEIGHT // 2  # Center vertically
 
-def game_loop(tela, clock, fonte, difficulty):
+    # Set ball speed based on difficulty
+    speed = {"easy": 5, "medium": 6, "hard": 7}.get(difficulty, 4)
+
+    ball_speed_x = random.choice([-speed, speed])  # Randomly choose left or right
+    ball_speed_y = random.choice([-speed, speed])  # Randomly choose up or down
+    return x_ball, y_ball, ball_speed_x, ball_speed_y
+
+def game_loop(screen, clock, font, difficulty):
     # Set AI speed based on difficulty
     ai_speed = {"easy": 4, "medium": 5, "hard": 6}.get(difficulty, 5)
 
     # Initial positions
-    y_jogador = ALTURA_TELA // 2 - ALTURA_RAQUETE // 2
-    y_ia = ALTURA_TELA // 2 - ALTURA_RAQUETE // 2
-    x_jogador = LARGURA_TELA // 3 + 30
-    x_ia = LARGURA_TELA - 30 - LARGURA_RAQUETE
-    x_bola, y_bola = reset_ball()
-    velocidade_bola_x = 5
-    velocidade_bola_y = 5
+    y_player = SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2
+    y_ai = SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2
+    x_player = SCREEN_WIDTH // 3 + 30
+    x_ai = SCREEN_WIDTH - 30 - PADDLE_WIDTH
+    x_ball, y_ball, ball_speed_x, ball_speed_y = reset_ball(difficulty)
 
-    pontos_jogador = 0
-    pontos_ia = 0
+    player_points = 0
+    ai_points = 0
 
-    rodando = True
-    while rodando:
+    running = True
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                rodando = False
+                return False  # Exit the program
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:  # Check if ESC is pressed
+                    return True  # Return to the menu
 
-        tela.fill(PRETO)
+        screen.fill(BLACK)
 
         # Update hand position and draw webcam feed
-        nova_pos_y = atualizar_webcam(tela)
-        if nova_pos_y is not None:
-            y_jogador = max(0, min(ALTURA_TELA - ALTURA_RAQUETE, nova_pos_y - ALTURA_RAQUETE // 2))
+        new_pos_y = update_webcam(screen)
+        if new_pos_y is not None:
+            y_player = max(0, min(SCREEN_HEIGHT - PADDLE_HEIGHT, new_pos_y - PADDLE_HEIGHT // 2))
 
         # AI movement
-        y_ia = handle_ai_movement(y_ia, y_bola, ai_speed)
+        y_ai = handle_ai_movement(y_ai, y_ball, ai_speed)
 
         # Ball movement
-        x_bola, y_bola, velocidade_bola_x, velocidade_bola_y = handle_ball_movement(
-            x_bola, y_bola, velocidade_bola_x, velocidade_bola_y
+        x_ball, y_ball, ball_speed_x, ball_speed_y = handle_ball_movement(
+            x_ball, y_ball, ball_speed_x, ball_speed_y
         )
 
         # Collision with player's paddle
-        if check_paddle_collision(x_bola - RAIO_BOLA, y_bola, x_jogador, y_jogador):
-            velocidade_bola_x *= -1
+        if check_paddle_collision(x_ball - BALL_RADIUS, y_ball, x_player, y_player):
+            ball_speed_x *= -1
+            x_ball = x_player + PADDLE_WIDTH + BALL_RADIUS  # Move ball outside the paddle
 
         # Collision with AI's paddle
-        if check_paddle_collision(x_bola + RAIO_BOLA, y_bola, x_ia, y_ia):
-            velocidade_bola_x *= -1
+        if check_paddle_collision(x_ball + BALL_RADIUS, y_ball, x_ai, y_ai):
+            ball_speed_x *= -1
+            x_ball = x_ai - BALL_RADIUS  # Move ball outside the paddle
 
         # Scoring
-        if x_bola < LARGURA_TELA // 3:  # Player missed
-            pontos_ia += 1
-            x_bola, y_bola = reset_ball()
-        if x_bola > LARGURA_TELA:  # AI missed
-            pontos_jogador += 1
-            x_bola, y_bola = reset_ball()
+        if x_ball < SCREEN_WIDTH // 3:  # Player missed
+            ai_points += 1
+            x_ball, y_ball, ball_speed_x, ball_speed_y = reset_ball(difficulty)
+            y_player = SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2  # Reset player position
+            y_ai = SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2  # Reset AI position
+
+        if x_ball > SCREEN_WIDTH:  # AI missed
+            player_points += 1
+            x_ball, y_ball, ball_speed_x, ball_speed_y = reset_ball(difficulty)
+            y_player = SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2  # Reset player position
+            y_ai = SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2  # Reset AI position
+
+        # Check if either player or AI has scored 5 points
+        if player_points == 5 or ai_points == 5:
+            return True  # Return to the menu
 
         # Draw game elements
-        pygame.draw.rect(tela, BRANCO, (x_jogador, y_jogador, LARGURA_RAQUETE, ALTURA_RAQUETE))
-        pygame.draw.rect(tela, BRANCO, (x_ia, y_ia, LARGURA_RAQUETE, ALTURA_RAQUETE))
-        pygame.draw.circle(tela, VERDE, (x_bola, y_bola), RAIO_BOLA)
+        pygame.draw.rect(screen, WHITE, (x_player, y_player, PADDLE_WIDTH, PADDLE_HEIGHT))
+        pygame.draw.rect(screen, WHITE, (x_ai, y_ai, PADDLE_WIDTH, PADDLE_HEIGHT))
+        pygame.draw.circle(screen, GREEN, (x_ball, y_ball), BALL_RADIUS)
 
-        desenhar_placar(tela, fonte, pontos_jogador, pontos_ia)
+        draw_score(screen, font, player_points, ai_points)
 
         pygame.display.flip()
         clock.tick(60)

@@ -1,17 +1,17 @@
 # Configuration constants
 
 # Colors
-BRANCO = (255, 255, 255)  # White
-PRETO = (0, 0, 0)         # Black
-VERDE = (0, 255, 0)       # Green
-AZUL = (0, 0, 255)        # Blue
-VERMELHO = (255, 0, 0)    # Red
+WHITE = (255, 255, 255)  # White
+BLACK = (0, 0, 0)        # Black
+GREEN = (0, 255, 0)      # Green
+BLUE = (0, 0, 255)       # Blue
+RED = (255, 0, 0)        # Red
 
 # Screen dimensions
-LARGURA_TELA = 1280       # Screen width
-ALTURA_TELA = 720         # Screen height
+SCREEN_WIDTH = 1280      # Screen width
+SCREEN_HEIGHT = 720      # Screen height
 
 # Paddle and ball dimensions
-LARGURA_RAQUETE = 20      # Paddle width
-ALTURA_RAQUETE = 100      # Paddle height
-RAIO_BOLA = 10            # Ball radius
+PADDLE_WIDTH = 20        # Paddle width
+PADDLE_HEIGHT = 100      # Paddle height
+BALL_RADIUS = 10         # Ball radius
